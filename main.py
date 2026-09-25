@@ -1,4 +1,17 @@
+import logging
+
 from modules.ec2_manager import EC2Manager
+from modules.audit import ResourceAuditor
+from modules.report import ReportGenerator
+
+
+logging.basicConfig(
+    filename="logs/automation.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+logger = logging.getLogger(__name__)
 
 
 AMI_ID = "ami-0fef201115eefe936"
@@ -9,10 +22,13 @@ SECURITY_GROUP_ID = "sg-0de7ec919e9ddbf84"
 
 def main():
     ec2_manager = EC2Manager()
+    auditor = ResourceAuditor()
+    report_generator = ReportGenerator()
 
     print("===== AWS RESOURCE AUTOMATION =====")
     print("1. Check EC2")
     print("2. Provision EC2")
+    print("3. Audit EC2")
 
     choice = input("Enter choice: ")
 
@@ -30,8 +46,51 @@ def main():
             print("-" * 30)
 
     elif choice == "2":
-        print("EC2 provisioning selected.")
-        print("Provisioning is not enabled yet.")
+        print("Starting EC2 provisioning...")
+        logger.info("EC2 provisioning started")
+
+        instance_id = ec2_manager.provision_instance(
+            AMI_ID,
+            INSTANCE_TYPE,
+            KEY_NAME,
+            SECURITY_GROUP_ID
+        )
+
+        print("EC2 instance created successfully!")
+        print(f"Instance ID: {instance_id}")
+
+        logger.info(f"EC2 instance created: {instance_id}")
+
+    elif choice == "3":
+        print("===== EC2 AUDIT =====")
+        logger.info("EC2 audit started")
+
+        instances = auditor.audit_ec2()
+
+        report_file = report_generator.generate_ec2_report(instances)
+
+        logger.info(
+            f"EC2 audit completed. Report: {report_file}"
+        )
+
+        print(f"Report generated: {report_file}")
+
+        if not instances:
+            print("No EC2 instances found.")
+            return
+
+        for instance in instances:
+            print(f"Instance ID : {instance['id']}")
+            print(f"State       : {instance['state']}")
+            print(f"Status      : {instance['status']}")
+            print(f"Type        : {instance['type']}")
+            print(f"Name        : {instance['name']}")
+            print(f"Project     : {instance['project']}")
+            print(f"Environment : {instance['environment']}")
+            print(f"Managed By  : {instance['managed_by']}")
+            print(f"Expires At  : {instance['expires_at']}")
+            print(f"Findings    : {', '.join(instance['findings'])}")
+            print("-" * 40)
 
     else:
         print("Invalid choice.")
