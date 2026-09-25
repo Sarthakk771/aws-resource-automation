@@ -4,6 +4,8 @@ from modules.ec2_manager import EC2Manager
 from modules.audit import ResourceAuditor
 from modules.report import ReportGenerator
 from modules.s3_manager import S3Manager
+from modules.cleanup import ResourceCleaner
+from modules.iam_manager import IAMManager
 
 
 logging.basicConfig(
@@ -27,11 +29,15 @@ def main():
     auditor = ResourceAuditor()
     report_generator = ReportGenerator()
     s3_manager = S3Manager(S3_BUCKET)
+    cleaner = ResourceCleaner()
+    iam_manager = IAMManager()
 
     print("===== AWS RESOURCE AUTOMATION =====")
     print("1. Check EC2")
     print("2. Provision EC2")
     print("3. Audit EC2")
+    print("4. Cleanup Dry Run")
+    print("5. IAM Audit")
 
     choice = input("Enter choice: ")
 
@@ -102,6 +108,20 @@ def main():
             print(f"Expires At  : {instance['expires_at']}")
             print(f"Findings    : {', '.join(instance['findings'])}")
             print("-" * 40)
+
+    elif choice == "4":
+        logger.info("Cleanup dry run started")
+
+        cleaner.dry_run()
+
+        logger.info("Cleanup dry run completed")
+
+    elif choice == "5":
+        logger.info("IAM audit started")
+
+        iam_manager.audit_users()
+
+        logger.info("IAM audit completed")
 
     else:
         print("Invalid choice.")
