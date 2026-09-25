@@ -20,3 +20,34 @@ class EC2Manager:
                 })
 
         return instances
+
+    def provision_instance(
+        self,
+        ami_id,
+        instance_type,
+        key_name,
+        security_group_id
+    ):
+        response = self.ec2.run_instances(
+            ImageId=ami_id,
+            InstanceType=instance_type,
+            KeyName=key_name,
+            SecurityGroupIds=[security_group_id],
+            MinCount=1,
+            MaxCount=1,
+            TagSpecifications=[
+                {
+                    "ResourceType": "instance",
+                    "Tags": [
+                        {"Key": "Name", "Value": "AWS-Automation-Test"},
+                        {"Key": "Project", "Value": "AWS-Resource-Automation"},
+                        {"Key": "Environment", "Value": "Development"},
+                        {"Key": "ManagedBy", "Value": "Boto3"}
+                    ]
+                }
+            ]
+        )
+
+        instance = response["Instances"][0]
+
+        return instance["InstanceId"]
