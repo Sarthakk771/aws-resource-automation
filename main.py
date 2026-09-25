@@ -7,6 +7,14 @@ from modules.s3_manager import S3Manager
 from modules.cleanup import ResourceCleaner
 from modules.iam_manager import IAMManager
 
+from config import (
+    EC2_AMI_ID,
+    EC2_INSTANCE_TYPE,
+    EC2_KEY_NAME,
+    EC2_SECURITY_GROUP_ID,
+    S3_BUCKET_NAME
+)
+
 
 logging.basicConfig(
     filename="logs/automation.log",
@@ -17,18 +25,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-AMI_ID = "ami-0fef201115eefe936"
-INSTANCE_TYPE = "t3.micro"
-KEY_NAME = "aws-automation-key"
-SECURITY_GROUP_ID = "sg-0de7ec919e9ddbf84"
-S3_BUCKET = "aws-resource-automation-230355213948"
-
-
 def main():
     ec2_manager = EC2Manager()
     auditor = ResourceAuditor()
     report_generator = ReportGenerator()
-    s3_manager = S3Manager(S3_BUCKET)
+    s3_manager = S3Manager(S3_BUCKET_NAME)
     cleaner = ResourceCleaner()
     iam_manager = IAMManager()
 
@@ -59,10 +60,10 @@ def main():
         logger.info("EC2 provisioning started")
 
         instance_id = ec2_manager.provision_instance(
-            AMI_ID,
-            INSTANCE_TYPE,
-            KEY_NAME,
-            SECURITY_GROUP_ID
+            EC2_AMI_ID,
+            EC2_INSTANCE_TYPE,
+            EC2_KEY_NAME,
+            EC2_SECURITY_GROUP_ID
         )
 
         print("EC2 instance created successfully!")
@@ -80,16 +81,20 @@ def main():
 
         print(f"Report generated: {report_file}")
 
-        s3_location = s3_manager.upload_report(report_file)
+        try:
+            s3_location = s3_manager.upload_report(report_file)
+            print(f"Uploaded to S3: {s3_location}")
 
-        print(f"Uploaded to S3: {s3_location}")
+            logger.info(
+                f"Report uploaded to S3: {s3_location}"
+            )
+
+        except Exception as error:
+            print(f"S3 upload skipped: {error}")
+            logger.warning(f"S3 upload failed: {error}")
 
         logger.info(
             f"EC2 audit completed. Report: {report_file}"
-        )
-
-        logger.info(
-            f"Report uploaded to S3: {s3_location}"
         )
 
         if not instances:
