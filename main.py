@@ -3,6 +3,7 @@ import logging
 from modules.ec2_manager import EC2Manager
 from modules.audit import ResourceAuditor
 from modules.report import ReportGenerator
+from modules.s3_manager import S3Manager
 
 
 logging.basicConfig(
@@ -18,12 +19,14 @@ AMI_ID = "ami-0fef201115eefe936"
 INSTANCE_TYPE = "t3.micro"
 KEY_NAME = "aws-automation-key"
 SECURITY_GROUP_ID = "sg-0de7ec919e9ddbf84"
+S3_BUCKET = "aws-resource-automation-230355213948"
 
 
 def main():
     ec2_manager = EC2Manager()
     auditor = ResourceAuditor()
     report_generator = ReportGenerator()
+    s3_manager = S3Manager(S3_BUCKET)
 
     print("===== AWS RESOURCE AUTOMATION =====")
     print("1. Check EC2")
@@ -69,11 +72,19 @@ def main():
 
         report_file = report_generator.generate_ec2_report(instances)
 
+        print(f"Report generated: {report_file}")
+
+        s3_location = s3_manager.upload_report(report_file)
+
+        print(f"Uploaded to S3: {s3_location}")
+
         logger.info(
             f"EC2 audit completed. Report: {report_file}"
         )
 
-        print(f"Report generated: {report_file}")
+        logger.info(
+            f"Report uploaded to S3: {s3_location}"
+        )
 
         if not instances:
             print("No EC2 instances found.")
